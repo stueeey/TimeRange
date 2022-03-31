@@ -99,6 +99,10 @@ public readonly struct TimeRange : IComparable, IComparable<TimeRange>, ICompara
     public static bool operator ==(TimeRange left, TimeRange right) => Equals(left, right);
     public static bool operator !=(TimeRange left, TimeRange right) => !Equals(left, right);
     public static bool operator ==(DateTimeOffset left, TimeRange right) => right.CompareTo(left) == 0;
-    public static bool operator !=(DateTimeOffset left, TimeRange right)=> right.CompareTo(left) != 0;
+    public static bool operator !=(DateTimeOffset left, TimeRange right) => right.CompareTo(left) != 0;
+    public static TimeRange operator +(TimeRange left, TimeSpan right) => new(left.Start.Add(right), left.End.Add(right));
+    public static TimeRange operator -(TimeRange left, TimeSpan right) => new(left.Start.Add(-right), left.End.Add(-right));
+    public static IEnumerable<TimeRange> operator /(TimeRange left, int parts) => left.SplitInto(parts);
+
     #endregion
 }

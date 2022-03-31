@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using FluentAssertions;
 using Xunit;
 using static Stuware.TimeRanges.Tests.TestHelpers;
@@ -94,5 +95,68 @@ public class TimeRangeExtensionTests
         TimeRange range2 = (day.At("1:20 pm"), day.At("3:30 pm"));
 
         range1.GetOverlap(range2).Should().BeNull();
+    }
+    
+    [Fact]
+    public void GivenATimeRangeAndANewStart_MoveTo_ShouldMoveTheTimeRangeToTheNewStartTime()
+    {
+        var day = LocalDay("2022/01/10");
+        TimeRange range = (day.At("10 am"), day.At("10:20 am"));
+
+        range.MoveTo(day.At("10:30 am")).Should().Be(new TimeRange(day.At("10:30 am"), day.At("10:50 am")));
+    }
+    
+    [Fact]
+    public void GivenATimeRangeAndANewStartResultingInAnInvalidDate_MoveTo_ShouldThrow()
+    {
+        var day = LocalDay("2022/01/10");
+        TimeRange range = (day.At("10 am"), DateTimeOffset.MaxValue.AddMinutes(-10));
+        Action invalidMove = () => range.MoveTo(day.At("11:00 am"));
+        invalidMove.Should().Throw<ArgumentOutOfRangeException>();
+    }
+    
+    [Fact]
+    public void GivenATimeRangeToSplitIntoFourParts_SplitInto_ShouldReturnFourEquallySizeParts()
+    {
+        var day = LocalDay("2022/01/10");
+        TimeRange range = (day.At("10 am"), day.At("12:00 pm"));
+
+        var parts = (range / 4).ToArray();
+        parts.SequenceEqual(range.SplitInto(4)).Should().BeTrue();
+        parts.Should().HaveCount(4);
+        parts.All(t => t.Duration == TimeSpan.FromMinutes(30)).Should().BeTrue();
+    }
+    
+    [Fact]
+    public void GivenATimeRangeToSplitIntoFiveParts_SplitInto_ShouldReturnFiveEquallySizeParts()
+    {
+        var day = LocalDay("2022/01/10");
+        TimeRange range = (day.At("10 am"), day.At("12:00 pm"));
+
+        var parts = (range / 5).ToArray();
+        parts.SequenceEqual(range.SplitInto(5)).Should().BeTrue();
+        parts.Should().HaveCount(5);
+        parts.All(t => t.Duration == TimeSpan.FromMinutes(24)).Should().BeTrue();
+    }
+    
+    [Fact]
+    public void GivenATimeRangeToSplitIntoOnePart_SplitInto_ShouldReturnTheTimeRange()
+    {
+        var day = LocalDay("2022/01/10");
+        TimeRange range = (day.At("10 am"), day.At("12:00 pm"));
+
+        var parts = (range / 1).ToArray();
+        parts.SequenceEqual(range.SplitInto(1)).Should().BeTrue();
+        parts.Should().HaveCount(1);
+        parts.All(t => t.Duration == TimeSpan.FromMinutes(120)).Should().BeTrue();
+    }
+    
+    [Fact]
+    public void GivenABlankTimeRangeToSplit_SplitInto_ShouldThrowArgumentException()
+    {
+        TimeRange range = default;
+
+        Action splitBlank = () => range.SplitInto(4);
+        splitBlank.Should().Throw<ArgumentException>();
     }
 }
