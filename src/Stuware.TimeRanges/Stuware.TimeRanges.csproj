@@ -1,9 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFrameworks>net45;netstandard2.0;net6.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <LangVersion>10</LangVersion>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <PackageId>Stuware.TimeRanges</PackageId>
+        <Title>Stuware.TimeRanges</Title>
+        <Version>0.0.1</Version>
+        <Authors>Stuart Wilson</Authors>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Summary>A package to makes it easier to work with blocks of time (Overlapping, Exclusions etc)</Summary>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <Using Remove="System.Net.Http" />
+    </ItemGroup>
 </Project>

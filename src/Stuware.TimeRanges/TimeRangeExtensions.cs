@@ -60,10 +60,10 @@ public static class TimeRangeExtensions
     /// </summary>
     /// <param name="rangeA">The first range</param>
     /// <param name="rangeB">The second range</param>
-    public static TimeRange? GetOverlap(this TimeRange rangeA, TimeRange rangeB) =>
+    public static TimeRange GetOverlap(this TimeRange rangeA, TimeRange rangeB) =>
         !Overlaps(rangeA, rangeB) 
-            ? null 
-            : (TimeRange?)new TimeRange(Max(rangeA.Start, rangeB.Start), Min(rangeA.End, rangeB.End));
+            ? default 
+            : new TimeRange(Max(rangeA.Start, rangeB.Start), Min(rangeA.End, rangeB.End));
 
     /// <summary>
     ///     Moves the start time of the given TimeRange to given DateTimeOffset, retaining the same duration 
@@ -78,6 +78,21 @@ public static class TimeRangeExtensions
         if (timeRange.IsBlank())
             throw new ArgumentException("TimeRange to move cannot be blank", nameof(timeRange)); 
         return new(newStart, timeRange.End.Add(newStart - timeRange.Start));
+    }
+    
+    /// <summary>
+    ///     Moves the given TimeRange by a period of time
+    /// </summary>
+    /// <param name="timeRange">The TimeRange to adjust</param>
+    /// <param name="delta">The amount to move the TimeRange by</param>
+    /// <returns>A TimeRange of the same length, shifted by <see cref="delta"/></returns>
+    /// <exception cref="ArgumentException">Thrown if the given TimeRange is blank</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if the resulting TimeRange has a start or end that is greater than DateTimeOffset.MaxValue or less than DateTimeOffset.MinValue</exception>
+    public static TimeRange MoveBy(this TimeRange timeRange, TimeSpan delta)
+    {
+        if (timeRange.IsBlank())
+            throw new ArgumentException("TimeRange to move cannot be blank", nameof(timeRange)); 
+        return new TimeRange(timeRange.Start + delta, timeRange.End + delta);
     }
 
     /// <summary>
@@ -100,11 +115,64 @@ public static class TimeRangeExtensions
             yield break;
         }
 
-        var desiredDuration = timeRange.Duration / parts;
+        var desiredDuration = TimeSpan.FromTicks(timeRange.Duration.Ticks / parts);
         for (var i = 0; i < parts; i++)
         {
-            var start = timeRange.Start + desiredDuration * i;
+            var start = timeRange.Start + TimeSpan.FromTicks(desiredDuration.Ticks * i);
             yield return new TimeRange(start, start + desiredDuration);
         }
+    }
+
+    /// <summary>
+    ///     Coerce the start and end of the given TimeRange to be between <paramref name="min"/> and <paramref name="max"/> 
+    /// </summary>
+    /// <param name="timeRange">The time range to clamp</param>
+    /// <param name="min">The minimum value for the start of the TimeRange</param>
+    /// <param name="max">The maximum value for the end of the TimeRange</param>
+    /// <returns>The clamped TimeRange</returns>
+    public static TimeRange Clamp(this TimeRange timeRange, DateTimeOffset min, DateTimeOffset max) =>
+        new(Max(min, timeRange.Start), Min(max, timeRange.End));
+
+    /// <summary>
+    ///     Coerce the start and end of the given TimeRange to be between the start and end of <paramref name="limits"/> 
+    /// </summary>
+    /// <param name="timeRange">The time range to clamp</param>
+    /// <param name="limits">The maximum and minimum values to clamp by</param>
+    /// <returns>The clamped TimeRange</returns>
+    public static TimeRange Clamp(this TimeRange timeRange, TimeRange limits) =>
+        timeRange.Clamp(limits.Start, limits.End);
+
+    public static IEnumerable<TimeRange> SplitInto(this TimeRange timeRange, TimeSpan duration)
+    {
+        if (duration == TimeSpan.Zero)
+            throw new ArgumentException("Can't split by a zero duration", nameof(duration));
+        var start = timeRange.Start;
+        while (true)
+        {
+            var end = start + duration;
+            if (end > timeRange.End)
+            {
+                yield return new TimeRange(start, timeRange.End);
+                yield break;
+            }
+            yield return new TimeRange(start, end);
+            start = end;
+        }
+    }
+    
+    public static IEnumerable<TimeRange> Excluding(this TimeRange range, TimeRange negativeRange)
+    {
+        if (!range.Overlaps(negativeRange))
+        {
+            yield return range;
+            yield break;
+        }
+
+        if (negativeRange.Start <= range.Start && negativeRange.End >= range.End)
+            yield break; // Completely negated
+        if (negativeRange.Start > range.Start)
+            yield return new TimeRange(range.Start, negativeRange.Start);
+        if (negativeRange.End < range.End)
+            yield return new TimeRange(negativeRange.End, range.End);
     }
 }

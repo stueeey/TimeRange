@@ -2,7 +2,6 @@
 using System.Linq;
 using FluentAssertions;
 using Xunit;
-using static Stuware.TimeRanges.Tests.TestHelpers;
 
 namespace Stuware.TimeRanges.Tests;
 
@@ -84,7 +83,7 @@ public class TimeRangeExtensionTests
         TimeRange range1 = (day.At("10 am"), day.At("1:20 pm"));
         TimeRange range2 = (day.At("2 pm"), day.At("3:30 pm"));
 
-        range1.GetOverlap(range2).Should().BeNull();
+        range1.GetOverlap(range2).Should().Be(default);
     }
     
     [Fact]
@@ -94,7 +93,7 @@ public class TimeRangeExtensionTests
         TimeRange range1 = (day.At("10 am"), day.At("1:20 pm"));
         TimeRange range2 = (day.At("1:20 pm"), day.At("3:30 pm"));
 
-        range1.GetOverlap(range2).Should().BeNull();
+        range1.GetOverlap(range2).Should().Be(default);
     }
     
     [Fact]

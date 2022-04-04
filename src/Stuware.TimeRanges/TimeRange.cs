@@ -2,16 +2,22 @@ namespace Stuware.TimeRanges;
 
 public readonly struct TimeRange : IComparable, IComparable<TimeRange>, IComparable<DateTimeOffset>, IEquatable<TimeRange>
 {
-    public TimeRange(DateTime start, DateTime end)
-    {
-        Start = start;
-        End = end;
-    }
-    
+    public DateTimeOffset Start { get; }
+    public DateTimeOffset End { get; }
+    public TimeSpan Duration => End - Start;
+
     public TimeRange(DateTimeOffset start, DateTimeOffset end)
     {
-        Start = start;
-        End = end;
+        if (end > start)
+        {
+            Start = start;
+            End = end;
+        }
+        else
+        {
+            Start = end;
+            End = start;
+        }
     }
 
     public TimeRange(TimeRange range)
@@ -20,12 +26,7 @@ public readonly struct TimeRange : IComparable, IComparable<TimeRange>, ICompara
         End = range.End;
     }
 
-    public DateTimeOffset Start { get; }
-    public DateTimeOffset End { get; }
-
-    public TimeSpan Duration => End - Start;
-
-#if !NET46
+#if !NETFRAMEWORK
     public static implicit operator TimeRange((DateTime start, DateTime end) range) => new(range.start, range.end);
     public static implicit operator TimeRange((DateTimeOffset start, DateTimeOffset end) range) => new(range.start, range.end);
     public static implicit operator (DateTime start, DateTime end)(TimeRange range) => (range.Start.LocalDateTime, range.End.LocalDateTime);
@@ -35,15 +36,17 @@ public readonly struct TimeRange : IComparable, IComparable<TimeRange>, ICompara
     public static implicit operator TimeRange(Tuple<DateTimeOffset, DateTimeOffset> range) => new(range.Item1, range.Item2);
     public static implicit operator Tuple<DateTime, DateTime>(TimeRange range) => new(range.Start.LocalDateTime, range.End.LocalDateTime);
     public static implicit operator Tuple<DateTimeOffset, DateTimeOffset>(TimeRange range) => new(range.Start, range.End);
-    
-    public override string ToString()
+    public static implicit operator TimeSpan(TimeRange range) => range.Duration;
+    public static implicit operator DateTimeOffset(TimeRange range) => range.Start;
+    public override string ToString() => ToString(true);
+
+    public string ToString(bool includeStartDate, bool? includeEndDate = null, bool? includeTimeZone = null)
     {
         if (this.IsBlank())
-            return $"<Blank {nameof(TimeRange)}>";
-        // TODO - timezones
-        return Start.Date == End.Date
-            ? $"{Start.LocalDateTime.ToShortTimeString()} - {End.LocalDateTime.ToShortTimeString()} ({Duration.Hours} h {Duration.Minutes} m)"
-            : $"{Start} - {End} ({Duration.Hours} h {Duration.Minutes} m)";
+            return "<Blank>";
+        includeTimeZone ??= Start.Offset != End.Offset;
+        includeEndDate ??= Start.DateTime.Date != End.DateTime.Date || (Start - End).Days != 0;
+        return $"{DebuggerStrings.ToDebuggerString(Start, includeStartDate, includeTimeZone.Value)} - {DebuggerStrings.ToDebuggerString(End, includeEndDate.Value, includeTimeZone.Value)} [{DebuggerStrings.ToDebuggerString(Duration)}]";
     }
 
     #region Comparison
@@ -83,7 +86,23 @@ public readonly struct TimeRange : IComparable, IComparable<TimeRange>, ICompara
     }
 
     public bool Equals(TimeRange other) => Start.Equals(other.Start) && End.Equals(other.End);
-    public override int GetHashCode() => HashCode.Combine(Start, End);
+    public override int GetHashCode()
+    {
+#if NET60
+        return HashCode.Combine(Start, End);
+#else
+        // System.HashCode does not exist in .net standard or net40 :(
+        unchecked
+        {
+            var hash = 17;
+            hash = hash * 31 + Start.GetHashCode();
+            hash = hash * 31 + End.GetHashCode();
+            return hash;
+        }
+#endif
+        
+    }
+
     public static bool operator <(TimeRange left, TimeRange right) => Comparer<TimeRange>.Default.Compare(left, right) < 0;
     public static bool operator >(TimeRange left, TimeRange right) => Comparer<TimeRange>.Default.Compare(left, right) > 0;
     public static bool operator <(TimeRange left, DateTimeOffset right) => left.Start < right;
@@ -103,6 +122,10 @@ public readonly struct TimeRange : IComparable, IComparable<TimeRange>, ICompara
     public static TimeRange operator +(TimeRange left, TimeSpan right) => new(left.Start.Add(right), left.End.Add(right));
     public static TimeRange operator -(TimeRange left, TimeSpan right) => new(left.Start.Add(-right), left.End.Add(-right));
     public static IEnumerable<TimeRange> operator /(TimeRange left, int parts) => left.SplitInto(parts);
-
+    public static IEnumerable<TimeRange> operator /(TimeRange left, TimeSpan duration) => left.SplitInto(duration);
+    public static TimeRange operator &(TimeRange left, TimeRange overlappingTimeRange) => left.GetOverlap(overlappingTimeRange);
+    public static IEnumerable<TimeRange> operator &(TimeRange left, IEnumerable<TimeRange> overlappingTimeRanges) => new[] {left}.Overlapping(overlappingTimeRanges);
+    public static IEnumerable<TimeRange> operator ^(TimeRange left, TimeRange overlappingTimeRange) => left.Excluding(overlappingTimeRange);
+    public static IEnumerable<TimeRange> operator ^(TimeRange left, IEnumerable<TimeRange> exclusions) => left.Excluding(exclusions);
     #endregion
 }

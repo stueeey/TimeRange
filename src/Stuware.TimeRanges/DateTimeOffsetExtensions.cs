@@ -13,21 +13,9 @@ public static class DateTimeOffsetExtensions
         ? candidate.IsBetweenInclusive(timeRange)
         : candidate.IsBetweenExclusive(timeRange);
     
-    /// <summary>
-    /// Returns true if the given candidate DateTimeOffset falls within the given TimeRange (inclusive)
-    /// </summary>
-    /// <param name="candidate">The timestamp to consider</param>
-    /// <param name="timeRange">The time range to check if the candidate timestamp is between</param>
-    /// <returns>True if the candidate falls within timeRange</returns>
-    public static bool IsBetweenInclusive(this DateTimeOffset candidate, TimeRange timeRange) => candidate >= timeRange.Start && candidate <= timeRange.End;
+    private static bool IsBetweenInclusive(this DateTimeOffset candidate, TimeRange timeRange) => candidate >= timeRange.Start && candidate <= timeRange.End;
     
-    /// <summary>
-    /// Returns true if the given candidate DateTimeOffset falls within the given TimeRange (exclusive)
-    /// </summary>
-    /// <param name="candidate">The timestamp to consider</param>
-    /// <param name="timeRange">The time range to check if the candidate timestamp is between</param>
-    /// <returns>True if the candidate falls within timeRange</returns>
-    public static bool IsBetweenExclusive(this DateTimeOffset candidate, TimeRange timeRange) => candidate > timeRange.Start && candidate < timeRange.End;
+    private static bool IsBetweenExclusive(this DateTimeOffset candidate, TimeRange timeRange) => candidate > timeRange.Start && candidate < timeRange.End;
 
     #region Internal
     

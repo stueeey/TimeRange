@@ -2,7 +2,6 @@
 using System.Linq;
 using FluentAssertions;
 using Xunit;
-using static Stuware.TimeRanges.Tests.TestHelpers;
 
 namespace Stuware.TimeRanges.Tests;
 
@@ -103,8 +102,70 @@ public class TimeRangeCollectionExtensionTests
 
         var attemptToConsolidateUnsortedList = () =>
         {
-            var _ = ranges.ConsolidateSortedTimeRanges().ToArray();
+            var _ = TimeRangeCollectionExtensions.ConsolidateSortedTimeRanges(ranges).ToArray();
         };
         attemptToConsolidateUnsortedList.Should().Throw<ArgumentException>();
     }
+    
+    [Fact]
+    public void GivenASingleRangeAndManyExclusions_Exclude_ShouldReturnSlicesOfTime()
+    {
+        var day = LocalDay("2022/02/13");
+
+        var range = new TimeRange(day.At("1 am"), day.At("9:30 pm"));
+
+        var exclusions = new TimeRange[]
+        {
+            new(day, day.At("1:00 am")),
+            
+            new(day.At("2 am"), day.At("3:00 am")),
+            new(day.At("3 am"), day.At("4:00 am")), // Neighbouring exclusion
+            
+            new(day.At("3:30 am"), day.At("9:00 am")), // Long overlapping exclusion
+            new(day.At("5:00 am"), day.At("6:00 am")), // Within another exclusion
+            
+            new(day.At("9:00 pm"), day.At("10:00 pm")) // Overlapping end of time range
+        };
+
+        var result = range ^ exclusions;
+        
+        result.Should().BeEquivalentTo(new TimeRange[]
+        {
+            new(day.At("1 am"), day.At("2 am")),
+            new(day.At("9 am"), day.At("9 pm"))
+        });
+    }
+    
+    [Fact]
+    public void GivenManyRangesAndManyExclusions_Exclude_ShouldReturnSlicesOfTime()
+    {
+        var day = LocalDay("2022/02/13");
+
+        var ranges = new TimeRange[]
+        {
+            (day.At("1 am"), day.At("9:30 pm"))   
+        };
+
+        var exclusions = new TimeRange[]
+        {
+            (day, day.At("1:00 am")),
+            
+            (day.At("2 am"), day.At("3:00 am")),
+            (day.At("3 am"), day.At("4:00 am")), // Neighbouring exclusion
+            
+            (day.At("3:30 am"), day.At("9:00 am")), // Long overlapping exclusion
+            (day.At("5:00 am"), day.At("6:00 am")), // Within another exclusion
+            
+            (day.At("9:00 pm"), day.At("10:00 pm")) // Overlapping end of time range
+        };
+
+        var result = ranges.Excluding(exclusions);
+        
+        result.Should().BeEquivalentTo(new TimeRange[]
+        {
+            new(day.At("1 am"), day.At("2 am")),
+            new(day.At("9 am"), day.At("9 pm"))
+        });
+    }
+    
 }

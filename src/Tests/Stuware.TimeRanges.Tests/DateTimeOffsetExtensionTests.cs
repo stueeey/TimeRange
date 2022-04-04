@@ -1,6 +1,5 @@
 ﻿using FluentAssertions;
 using Xunit;
-using static Stuware.TimeRanges.Tests.TestHelpers;
 
 namespace Stuware.TimeRanges.Tests;
 
@@ -15,8 +14,8 @@ public class DateTimeOffsetExtensionTests
         var day = LocalDay("2022/02/13");
 
         day.IsBetween((start, end)).Should().BeTrue();
-        day.IsBetweenInclusive((start, end)).Should().BeTrue();
-        day.IsBetweenExclusive((start, end)).Should().BeTrue();
+        day.IsBetween((start, end), true).Should().BeTrue();
+        day.IsBetween((start, end), false).Should().BeTrue();
     }
     
     [Fact]
@@ -27,13 +26,13 @@ public class DateTimeOffsetExtensionTests
         
         var before = LocalDay("2022/02/09");
         before.IsBetween((start, end)).Should().BeFalse();
-        before.IsBetweenInclusive((start, end)).Should().BeFalse();
-        before.IsBetweenExclusive((start, end)).Should().BeFalse();
-        
+        before.IsBetween((start, end), true).Should().BeFalse();
+        before.IsBetween((start, end), false).Should().BeFalse();
+
         var after = LocalDay("2022/03/09");
         after.IsBetween((start, end)).Should().BeFalse();
-        after.IsBetweenInclusive((start, end)).Should().BeFalse();
-        after.IsBetweenExclusive((start, end)).Should().BeFalse();
+        after.IsBetween((start, end), true).Should().BeFalse();
+        after.IsBetween((start, end), false).Should().BeFalse();
     }
     
     [Fact]
@@ -45,13 +44,9 @@ public class DateTimeOffsetExtensionTests
         start.IsBetween((start, end)).Should().BeFalse();
         start.IsBetween((start, end), false).Should().BeFalse();
         start.IsBetween((start, end), true).Should().BeTrue();
-        start.IsBetweenInclusive((start, end)).Should().BeTrue();
-        start.IsBetweenExclusive((start, end)).Should().BeFalse();
-        
+
         end.IsBetween((start, end)).Should().BeFalse();
         end.IsBetween((start, end), false).Should().BeFalse();
         end.IsBetween((start, end), true).Should().BeTrue();
-        end.IsBetweenInclusive((start, end)).Should().BeTrue();
-        end.IsBetweenExclusive((start, end)).Should().BeFalse();
     }
 }
